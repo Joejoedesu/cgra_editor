@@ -623,10 +623,13 @@ class GUI(QWidget):
                 line_ind += 1
                 tokens = line.split("\t")
                 t_id = tokens[-1][1:]
-                node = self.design.tr_map[t_id][0]
-                tokens[2] = str(node.x)
-                tokens[3] = str(node.y)
-                content += tokens[0] + "\t\t" + tokens[2] + "\t" + tokens[3] + "\t\t" + tokens[-1] + "\n"
+                if t_id in self.design.tr_map:
+                    node = self.design.tr_map[t_id][0]
+                    tokens[2] = str(node.x)
+                    tokens[3] = str(node.y)
+                    content += tokens[0] + "\t\t" + tokens[2] + "\t" + tokens[3] + "\t\t" + tokens[-1] + "\n"
+                else:
+                    content += line + "\n"
         f.close()
         f = open(place_f, "w")
         f.write(content)
@@ -639,7 +642,7 @@ class GUI(QWidget):
 
         f = open(route_f, 'w')
         content = ""
-        for net_id in self.design.net_to_segs:
+        for net_id in self.design.net_to_segs: #TODO
             record_r = set()
             segments = self.design.net_to_segs[net_id]
             content += "Net ID: "+ net_id + " Segment Size: " + str(len(segments)) + "\n"

@@ -154,9 +154,10 @@ class RoutingResultGraph:
     def __init__(self):
         self.nodes: Set[Union[RouteNode, TileNode]] = set()
         self.tile_id_to_tile: Dict[str, Union[RouteNode, TileNode]] = {}
-        self.edges: Set[
-            (Union[RouteNode, TileNode], Union[RouteNode, TileNode])
-        ] = set()
+        self.edges: List[(Union[RouteNode, TileNode], Union[RouteNode, TileNode])] = []
+        # self.edges: Set[
+        #     (Union[RouteNode, TileNode], Union[RouteNode, TileNode])
+        # ] = set()
         self.edge_weights: Dict[
             (Union[RouteNode, TileNode], Union[RouteNode, TileNode]), int
         ] = {}
@@ -192,6 +193,10 @@ class RoutingResultGraph:
             if isinstance(node, TileNode):
                 tiles.append(node)
         return tiles
+    
+    def ch_tmp(self, node):
+        print("sinks: ", len(self.sinks[node]))
+        print("sources: ", len(self.sources[node]))
 
     def get_routes(self):
         routes = []
@@ -377,20 +382,37 @@ class RoutingResultGraph:
             self.nodes.add(node)
             self.tile_id_to_tile[node.tile_id] = node
 
-    def add_edge(self, node1, node2):
+    def add_edge(self, node1, node2): # TODO: diff
         assert node1 in self.nodes, f"{node1} not in nodes"
         assert node2 in self.nodes, f"{node2} not in nodes"
 
         assert isinstance(node1, RouteNode) or isinstance(node1, TileNode)
         assert isinstance(node2, RouteNode) or isinstance(node2, TileNode)
 
-        self.edges.add((node1, node2))
+        if (node1, node2) not in self.edges:
+            self.edges.append((node1, node2))
 
         if node2 not in self.sources:
-            self.sources[node2] = [node1]
+            self.sources[node2] = []
+        if node1 not in self.sources[node2]:
+            self.sources[node2].append(node1)
 
         if node1 not in self.sinks:
-            self.sinks[node1] = [node2]
+            self.sinks[node1] = []
+        if node2 not in self.sinks[node1]:
+            self.sinks[node1].append(node2)
+
+        # self.edges.add((node1, node2))
+
+        # if node2 not in self.sources:
+        #     self.sources[node2] = [node1]
+        #     # if isinstance(node2, RouteNode) and node2.port == "PondTop_output_width_17_num_0" and node2.x == 26 and node2.y == 15:
+        #     #     print(self.sources[node2], node2.net_id, type(node1), node1.tile_id)
+
+        # if node1 not in self.sinks:
+        #     # if isinstance(node1, RouteNode) and node1.port == "PondTop_output_width_17_num_0" and node1.x == 26 and node1.y == 15:
+        #     #     print(type(node2), node2.port, "!!!!!!!!!!!!1")
+        #     self.sinks[node1] = [node2]
 
     def update_sources_and_sinks(self):
         self.inputs = set()
@@ -443,7 +465,7 @@ class RoutingResultGraph:
         if node1 in self.sinks[node0]:
             self.sinks[node0].remove(node1)
 
-    def is_cyclic_util(self, v, visited, rec_stack):
+    def is_cyclic_util(self, v, visited, rec_stack): #TODO: diff
         visited.append(v)
         rec_stack.append(v)
 
@@ -459,15 +481,15 @@ class RoutingResultGraph:
         return None
 
     def fix_cycles(self):
-        sys.setrecursionlimit(10**6)
-        visited = []
-        rec_stack = []
-        for node in self.inputs:
-            if node not in visited:
-                break_edge = self.is_cyclic_util(node, visited, rec_stack)
-                if break_edge is not None:
-                    self.remove_edge(break_edge)
-                    return True
+        # sys.setrecursionlimit(10**6)
+        # visited = []
+        # rec_stack = []
+        # for node in self.inputs:
+        #     if node not in visited:
+        #         break_edge = self.is_cyclic_util(node, visited, rec_stack)
+        #         if break_edge is not None:
+        #             self.remove_edge(break_edge)
+        #             return True
         return False
 
     def segment_to_node(self, segment, net_id, kernel=None):
@@ -526,7 +548,7 @@ class RoutingResultGraph:
             return self.tile_id_to_tile[node.tile_id]
         return node
 
-    def gen_placement(self, placement, netlist, pes_with_packed_ponds):
+    def gen_placement(self, placement, netlist, pes_with_packed_ponds): #TODO: diff
         for blk_id, place in placement.items():
             if place not in self.placement:
                 self.placement[place] = []
@@ -534,18 +556,29 @@ class RoutingResultGraph:
 
         for net_id, conns in netlist.items():
             for conn in conns:
-                if (
-                    pes_with_packed_ponds is not None
-                    and conn[0] in pes_with_packed_ponds
-                    and "PondTop" in conn[1]
-                ):
-                    new_conn = pes_with_packed_ponds[conn[0]]
-                else:
-                    new_conn = conn[0]
+                if conn[0] not in self.id_to_ports:
+                    self.id_to_ports[conn[0]] = []
+                self.id_to_ports[conn[0]].append(conn[1])
 
-                if new_conn not in self.id_to_ports:
-                    self.id_to_ports[new_conn] = []
-                self.id_to_ports[new_conn].append(conn[1])
+        # for blk_id, place in placement.items():
+        #     if place not in self.placement:
+        #         self.placement[place] = []
+        #     self.placement[place].append(blk_id)
+
+        # for net_id, conns in netlist.items():
+        #     for conn in conns:
+        #         if (
+        #             pes_with_packed_ponds is not None
+        #             and conn[0] in pes_with_packed_ponds
+        #             and "PondTop" in conn[1]
+        #         ):
+        #             new_conn = pes_with_packed_ponds[conn[0]]
+        #         else:
+        #             new_conn = conn[0]
+
+        #         if new_conn not in self.id_to_ports:
+        #             self.id_to_ports[new_conn] = []
+        #         self.id_to_ports[new_conn].append(conn[1])
 
     def get_tile_at(self, x, y, port, pes_with_packed_ponds):
         tiles = self.placement[(x, y)]
@@ -607,7 +640,7 @@ class RoutingResultGraph:
             node.update_tile_id()
             assert node.kernel is not None, node
 
-    def fix_regs(self, netlist):
+    def fix_regs(self, netlist): #TODO: diff
         for tile in self.get_tiles():
             if tile.tile_type == TileType.REG:
                 if len(self.sinks[tile]) == 0:
@@ -636,64 +669,45 @@ class RoutingResultGraph:
                             self.remove_edge((source, source_sink))
                             self.add_edge(source_copy, source_sink)
 
+        self.update_sources_and_sinks()
         # Routing result doesn't have reg name information
         # Need to get that from the netlist
         unsolved_regs = []
         for node in self.get_tiles():
             if node.tile_type == TileType.REG:
-                assert (
-                    node.x,
-                    node.y,
-                ) in self.placement, (
-                    f"Reg at ({node.x},{node.y}) not in placement result"
-                )
-                regs = self.placement[(node.x, node.y)]
-                regs = [reg for reg in regs if reg[0] == "r"]
-                if len(regs) == 1:
-                    node.tile_id = regs[0]
+                unsolved_regs.append(node)
 
-                    if len(self.id_to_name[regs[0]].split("$")) > 0:
-                        kernel = self.id_to_name[regs[0]].split("$")[0]
-                    else:
-                        kernel = None
-
-                    node.kernel = kernel
-
-                else:
-                    unsolved_regs.append((node, regs))
-
-        seen_regs = set()
-
+        seen_regs = []
         while len(unsolved_regs) > 0:
             resolved = False
-            (node, regs) = unsolved_regs.pop(0)
+            node = unsolved_regs.pop(0)
             if node in seen_regs:
-                print(f"Couldn't associate {node} with {regs} in placement file")
+                print(f"Couldn't associate {node} with reg in netlist")
+                print([str(r) for r in seen_regs])
                 return
-            seen_regs.add(node)
+            seen_regs.append(node)
 
-            prev_tile_found = False
-            prev_node = node
-            while not prev_tile_found:
-                assert len(self.sources[prev_node]) == 1
-                prev_node = self.sources[prev_node][0]
+            next_tile_found = False
+            next_node = node
+            while not next_tile_found:
+                # assert len(self.sinks[next_node]) == 1, self.sinks[next_node]
+                port = next_node
+                next_node = self.sinks[next_node][0]
 
-                if isinstance(prev_node, TileNode):
-                    prev_tile_found = True
+                if isinstance(next_node, TileNode):
+                    next_tile_found = True
 
-            if prev_node.kernel != None:
+            if next_node.kernel != None:
                 for net_id, net in netlist.items():
-                    if net[0][0] == prev_node.tile_id:
-                        for id_ in net[1:]:
-                            if id_[0] in regs:
-                                resolved = True
-                                node.tile_id = id_[0]
-                                node.kernel = self.id_to_name[node.tile_id].split("$")[
-                                    0
-                                ]
-                                seen_regs = set()
+                    for id_ in net[1:]:
+                        if id_[0] == next_node.tile_id and id_[1] == port.port and net[0][0][0] == 'r':
+                            resolved = True
+                            node.tile_id = net[0][0]
+                            node.kernel = self.id_to_name[node.tile_id].split("$")[0]
+                            seen_regs = []
+
             if not resolved:
-                unsolved_regs.append((node, regs))
+                unsolved_regs.append(node)
 
     def get_output_tiles_of_kernel(self, kernel):
         kernel_nodes = set()
@@ -726,7 +740,19 @@ class RoutingResultGraph:
         return kernel_output_nodes
 
 
-def construct_graph(
+def process_net(net):
+    net_t = []
+    for seg in net:
+        ck = 0
+        for i in range(len(seg)):
+            if seg[i][0] == "REG" or i == len(seg) - 1:
+                net_t.append(seg[ck:i + 1])
+                ck = i
+    return net_t
+
+
+
+def construct_graph( #TODO: diff
     placement,
     routes,
     id_to_name,
@@ -752,14 +778,25 @@ def construct_graph(
                 kernel = None
             node = TileNode(place[0], place[1], tile_id=blk_id, kernel=kernel)
             graph.add_node(node)
-
-            if pes_with_packed_ponds is not None and blk_id in pes_with_packed_ponds:
-                pond_id = pes_with_packed_ponds[blk_id]
-                node = TileNode(place[0], place[1], tile_id=pond_id, kernel=kernel)
-                graph.add_node(node)
-
         max_reg_id = max(max_reg_id, int(blk_id[1:]))
     graph.added_regs = max_reg_id + 1
+
+    # for blk_id, place in placement.items():
+    #     if blk_id[0] != "r":
+    #         if len(graph.id_to_name[blk_id].split("$")) > 0:
+    #             kernel = graph.id_to_name[blk_id].split("$")[0]
+    #         else:
+    #             kernel = None
+    #         node = TileNode(place[0], place[1], tile_id=blk_id, kernel=kernel)
+    #         graph.add_node(node)
+
+    #         if pes_with_packed_ponds is not None and blk_id in pes_with_packed_ponds:
+    #             pond_id = pes_with_packed_ponds[blk_id]
+    #             node = TileNode(place[0], place[1], tile_id=pond_id, kernel=kernel)
+    #             graph.add_node(node)
+
+    #     max_reg_id = max(max_reg_id, int(blk_id[1:]))
+    # graph.added_regs = max_reg_id + 1
 
     nets = {}
 
@@ -770,6 +807,8 @@ def construct_graph(
         random.randint(64, 255),
         255)
         nets[net_id] = net_n(net_id=net_id, node_s = [], node_e = [], color=color)
+
+        net = process_net(net)
 
         for route in net:
             # print(route[0], route[-1], "====", net_id)
@@ -795,7 +834,12 @@ def construct_graph(
                     tile_id = graph.get_tile_at(
                         node1.x, node1.y, node1.port, pes_with_packed_ponds
                     )
+                    # if net_id == "e1002":
+                    #     print(tile_id, node1.x, node1.y, node1.port, "==================")
+                    # print("construct_a", tile_id)
                     graph.add_edge(graph.get_tile(tile_id), node1)
+                    # if net_id == "e1002":
+                    #     print(tile_id, type(graph.get_tile(tile_id)), "==================")                    
                 elif node1.route_type == RouteType.REG:
                     reg_tile = graph.get_or_create_reg_at(
                         node1.x,
@@ -810,7 +854,12 @@ def construct_graph(
                     tile_id = graph.get_tile_at(
                         node2.x, node2.y, node2.port, pes_with_packed_ponds
                     )
+                    # print("construct_b", tile_id)
                     graph.add_edge(node2, graph.get_tile(tile_id))
+                    # if net_id == "e1002":
+                    #     print(tile_id, node2.x, node2.y, node2.port, graph.get_tile(tile_id), "==================")
+                    #     graph.ch_tmp(node2)
+
                 elif node2.route_type == RouteType.REG:
                     reg_tile = graph.get_or_create_reg_at(
                         node2.x,
@@ -823,26 +872,17 @@ def construct_graph(
 
     graph.update_sources_and_sinks()
 
+    # graph.fix_regs(netlist)
+
     while graph.fix_cycles():
         pass
-
-    graph.fix_regs(netlist)
 
     id_to_input_ports = {}
     for net_id, conns in netlist.items():
         for conn in conns[1:]:
-            if (
-                pes_with_packed_ponds is not None
-                and conn[0] in pes_with_packed_ponds
-                and "PondTop" in conn[1]
-            ):
-                new_conn = pes_with_packed_ponds[conn[0]]
-            else:
-                new_conn = conn[0]
-
-            if new_conn not in id_to_input_ports:
-                id_to_input_ports[new_conn] = []
-            id_to_input_ports[new_conn].append(conn[1])
+            if conn[0] not in id_to_input_ports:
+                id_to_input_ports[conn[0]] = []
+            id_to_input_ports[conn[0]].append(conn[1])
 
     for tile in graph.get_tiles():
         tile_id = tile.tile_id
@@ -927,7 +967,8 @@ class KernelNode:
 class KernelGraph:
     def __init__(self):
         self.nodes: Set[KernelNode] = set()
-        self.edges: Set[(KernelNode, KernelNode)] = set()
+        self.edges: List[(KernelNode, KernelNode)] = []
+        # self.edges: Set[(KernelNode, KernelNode)] = set()
         self.inputs: Set[KernelNode] = set()
         self.outputs: Set[KernelNode] = set()
         self.sources: Dict[KernelNode, List[KernelNode]] = {}
@@ -958,22 +999,35 @@ class KernelGraph:
             self.nodes.add(node)
             self.tile_id_to_tile[str(node)] = node
 
-    def add_edge(self, node1, node2):
+    def add_edge(self, node1, node2): #TODO: diff
         assert node1 in self.nodes, f"{node1} not in nodes"
         assert node2 in self.nodes, f"{node2} not in nodes"
 
         assert isinstance(node1, KernelNode)
         assert isinstance(node2, KernelNode)
 
-        self.edges.add((node1, node2))
+
+        if (node1, node2) not in self.edges:
+            self.edges.append((node1, node2))
 
         if node2 not in self.sources:
             self.sources[node2] = []
-        self.sources[node2].append(node1)
+        if node1 not in self.sources[node2]:
+            self.sources[node2].append(node1)
 
         if node1 not in self.sinks:
             self.sinks[node1] = []
-        self.sinks[node1].append(node2)
+        if node2 not in self.sinks[node1]:
+            self.sinks[node1].append(node2)
+        # self.edges.add((node1, node2))
+
+        # if node2 not in self.sources:
+        #     self.sources[node2] = []
+        # self.sources[node2].append(node1)
+
+        # if node1 not in self.sinks:
+        #     self.sinks[node1] = []
+        # self.sinks[node1].append(node2)
 
     def update_sources_and_sinks(self):
         self.inputs = set()

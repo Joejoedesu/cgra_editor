@@ -140,6 +140,7 @@ class Design:
             edi = True
             if seg_num > 1:
                 edi = False
+            # print("start ==================")
             
             for i in range(seg_num):
                 node_st = self.nets[net_id].node_s[i]
@@ -149,6 +150,9 @@ class Design:
                     node_st = self.result_graph.sources[node_st][0]
                 nodes = []
                 node_cur = node_ed
+                # print(node_cur)
+                # print(node_ed)
+                # print(node_st)
                 while node_cur != node_st:
                     nodes.append(node_cur)
                     assert (len(self.result_graph.sources[node_cur]) > 0)
@@ -157,12 +161,19 @@ class Design:
                 nodes.reverse()
 
                 self.sg[self.seg_cnt] = seg(self.nets[net_id].width, nodes, color, net_id, edi)
-                start_tile = self.result_graph.sources[node_st][0]
+                for t in self.result_graph.sources[node_st]:
+                    if type(t) is TileNode:
+                        start_tile = t
+                        break
+                # start_tile = self.result_graph.sources[node_st][0]
                 self.sg[self.seg_cnt].set_start(node_st, start_tile.tile_id)
 
+                for t in self.result_graph.sinks[node_ed]:
+                    if type(t) is TileNode:
+                        end_tile = t
+                        break
                 end_tile = self.result_graph.sinks[node_ed][0]
                 self.sg[self.seg_cnt].set_end(node_ed, end_tile.tile_id)
-                # print(node_st.tile_id, node_ed.tile_id)
 
                 self.net_to_segs[net_id].append(self.seg_cnt) # a map from net_id to seg_ids
                 self.seg_cnt += 1
@@ -182,6 +193,7 @@ class Design:
                 tile_id = self.result_graph.get_tile_at(
                     node1.x, node1.y, node1.port, None
                 )
+                # print(tile_id)
                 if tile_id not in self.tr_map:
                     self.tr_map[tile_id] = []
                 if node1 not in self.tr_map[tile_id]:
