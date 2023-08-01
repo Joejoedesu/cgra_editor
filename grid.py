@@ -648,7 +648,7 @@ class IMG_DRAW:
         # return self.rt_Qt()
 
 
-    def create_tile_types(self, width = 2):
+    def create_tile_types(self, width = 1):
         temp = dict()
         w = GLOBAL_TILE_WIDTH - 2 * GLOBAL_TILE_MARGIN
         sx = 0

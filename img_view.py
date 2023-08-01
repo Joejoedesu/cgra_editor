@@ -220,6 +220,7 @@ class IMG_WIN(QWidget):
                     s += "\n --------\n"
             s += "SB ports:\n"
             if p_tile.loc in self.p.design.rh:
+                print(len(self.p.design.rh[p_tile.loc]))
                 for port in self.p.design.rh[p_tile.loc]:
                     if port.bit_width == self.p.design_width:
                         s += port.net_id + " side " + str(port.side) + " track " + str(port.track)
@@ -400,6 +401,7 @@ class IMG_WIN(QWidget):
         for pot_sb in self.p.pot_sbs:
             (x_c, y_c) = self.get_sb_box_cent(pot_sb)
             if (dx - x_c) * (dx - x_c) + (dy - y_c) * (dy - y_c) <= pw * pw:
+                print(type(pot_sb), pot_sb)
                 self.p.add_sb(pot_sb)
                 return True
         
@@ -550,7 +552,8 @@ class GUI(QWidget):
         self.ui.lineEdit.clear()
         self.seg_display("")
 
-        self.count = self.design.type_count
+        # self.count = self.design.type_count
+        self.count = 6
         (self.dim_x, self.dim_y) = self.design.get_dim()
 
         self.edit_mode = False
@@ -584,8 +587,8 @@ class GUI(QWidget):
         assert os.path.exists(graph16), route + " does not exists"
 
         self.design = Design(netlist, placement, route, id_to_name_filename, [graph1, graph16])
-        clk_info = self.design.sta()
-        self.display_message("MSG:", clk_info)
+        # clk_info = self.design.sta()
+        # self.display_message("MSG:", clk_info)
         return
 
     def save_design(self):
@@ -600,6 +603,7 @@ class GUI(QWidget):
         self.save_place()
         self.save_route()
         self.display_message("MSG", "SUCCESS")
+        # self.process_path(self.dirname)
         return        
     
     def save_place(self):
@@ -937,10 +941,14 @@ class GUI(QWidget):
             self.display_message("WARN:", "Invalid direction")
             return
         
+        net_ids = set()
+        for r_n in self.design.tr_map[r_input[0]]:
+            net_ids.add(r_n.net_id)
+
         if (x, y) in self.design.rh:
             for r_n in self.design.rh[(x, y)]:
-                if r_n.route_type == RouteType.SB and r_n.io == 0:
-                    if r_n.track == new_track and r_n.side == new_dir and r_n.bit_width == wid:
+                if r_n.route_type == RouteType.SB and r_n.io == 1:
+                    if r_n.track == new_track and r_n.side == new_dir and r_n.bit_width == wid and r_n.net_id not in net_ids:
                         free = False
                         break
 
