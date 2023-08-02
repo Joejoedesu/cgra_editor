@@ -587,8 +587,11 @@ class GUI(QWidget):
         assert os.path.exists(graph16), route + " does not exists"
 
         self.design = Design(netlist, placement, route, id_to_name_filename, [graph1, graph16])
-        # clk_info = self.design.sta()
-        # self.display_message("MSG:", clk_info)
+
+        #enable sta
+        clk_info, s, e = self.design.sta()
+        sta_info = clk_info + "\n" + s + "\n" + e
+        self.display_message("MSG:", sta_info)
         return
 
     def save_design(self):

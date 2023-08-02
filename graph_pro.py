@@ -563,5 +563,15 @@ class Design:
 
         clk_info = "Maximum clock frequency: " + str(clock_speed) + " MHz\n"
         clk_info += "Critical Path: " + str(max_delay) + " ps\n"
-        return clk_info
+        st_info = "start: " + str(crit_nodes[-1].x) + " " + str(crit_nodes[-1].y)
+        if type(crit_nodes[-1]) is TileNode:
+            st_info += " tile_id: " + str(crit_nodes[-1].tile_id)
+        else:
+            st_info += " width: " + str(crit_nodes[-1].bit_width)
+        end_info = "end: " + str(crit_nodes[0].x) + " " + str(crit_nodes[0].y)
+        if type(crit_nodes[0]) is TileNode:
+            end_info += " tile_id: " + str(crit_nodes[0].tile_id)
+        else:
+            end_info += " width: " + str(crit_nodes[0].bit_width)
+        return clk_info, st_info, end_info
         # return clock_speed, crit_path, crit_nodes
