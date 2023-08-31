@@ -771,6 +771,7 @@ def construct_graph( #TODO: diff
     max_reg_id = 0
 
     for blk_id, place in placement.items():
+        # print(blk_id)
         if blk_id[0] != "r":
             if len(graph.id_to_name[blk_id].split("$")) > 0:
                 kernel = graph.id_to_name[blk_id].split("$")[0]
@@ -778,8 +779,9 @@ def construct_graph( #TODO: diff
                 kernel = None
             node = TileNode(place[0], place[1], tile_id=blk_id, kernel=kernel)
             graph.add_node(node)
-        max_reg_id = max(max_reg_id, int(blk_id[1:]))
+            max_reg_id = max(max_reg_id, int(blk_id[1:]))
     graph.added_regs = max_reg_id + 1
+    # print(graph.added_regs)
 
     # for blk_id, place in placement.items():
     #     if blk_id[0] != "r":
