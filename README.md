@@ -8,6 +8,7 @@ Python 3.8.10
 ### public package
 Pillow 9.4.0  
 PySide2 5.15.2.1
+graphviz
 
 ### p&r package:
 pythunder  
