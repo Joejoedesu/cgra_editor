@@ -401,7 +401,7 @@ class IMG_WIN(QWidget):
         for pot_sb in self.p.pot_sbs:
             (x_c, y_c) = self.get_sb_box_cent(pot_sb)
             if (dx - x_c) * (dx - x_c) + (dy - y_c) * (dy - y_c) <= pw * pw:
-                print(type(pot_sb), pot_sb)
+                # print(type(pot_sb), pot_sb)
                 self.p.add_sb(pot_sb)
                 return True
         
@@ -613,7 +613,8 @@ class GUI(QWidget):
         place_f = os.path.join(self.dirname, "design.place")
         assert (os.path.exists(place_f))
         content = ""
-
+        print(self.design.result_graph.added_regs)
+        print(self.design.result_graph.start_regs)
         f = open(place_f, "r")
         lines = f.readlines()
         line_ind = 0
@@ -717,8 +718,8 @@ class GUI(QWidget):
         p_tile = self.graphic.selected_tile
         if (not p_tile.is_tile) or (not p_tile.is_working_tile):
             return False
-        if p_tile.loc[1] == 0: #cannot edit port tile
-            return False 
+        # if p_tile.loc[1] == 0: #cannot edit port tile
+        #     return False 
         return True
     
     def place(self):
@@ -797,10 +798,9 @@ class GUI(QWidget):
         source_type = [th_n.ty for th_n in self.design.th[s_tile.loc]]
 
         lim_type = TileType.PE
-        if e_tile.loc[1] == 0: #currently unimplemented
+        if e_tile.loc[1] == 0:
             lim_type = TileType.IO1
-            return False
-        if e_tile.loc[0] % 4 == 3:
+        elif e_tile.loc[0] % 4 == 3:
             lim_type = TileType.MEM
 
         if lim_type == TileType.PE:
@@ -813,6 +813,11 @@ class GUI(QWidget):
                 return False
             else:
                 return True
+        if lim_type == TileType.IO1:
+            if TileType.IO1 in source_type or TileType.IO16 in source_type:
+                return True
+            else:
+                return False
 
     def detector(self):
         self.label.display_text("detected: " + str(self.rec))
@@ -1402,12 +1407,12 @@ class GUI(QWidget):
             assert(dir >= 0)
             track = int(nodes[-1].reg_name[1])
             
-            if e_t.x != nodes[-2].x or e_t.y != nodes[-2].y or track != nodes[-2].track or dir != nodes[-2].side:
+            if e_t.x != nodes[-2].x or e_t.y != nodes[-2].y or track != nodes[-2].track or dir != nodes[-2].side or nodes[-2].io == 0:
                 v = False
                 self.display_message("ERROR:", "Route failed for end reg")
                 return v
         else:
-            if e_t.x != nodes[-2].x or e_t.y != nodes[-2].y:
+            if e_t.x != nodes[-2].x or e_t.y != nodes[-2].y or nodes[-2].io == 1:
                 v = False
                 self.display_message("ERROR:", "Route failed for end regular")
                 return v 

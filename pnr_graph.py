@@ -402,18 +402,6 @@ class RoutingResultGraph:
         if node2 not in self.sinks[node1]:
             self.sinks[node1].append(node2)
 
-        # self.edges.add((node1, node2))
-
-        # if node2 not in self.sources:
-        #     self.sources[node2] = [node1]
-        #     # if isinstance(node2, RouteNode) and node2.port == "PondTop_output_width_17_num_0" and node2.x == 26 and node2.y == 15:
-        #     #     print(self.sources[node2], node2.net_id, type(node1), node1.tile_id)
-
-        # if node1 not in self.sinks:
-        #     # if isinstance(node1, RouteNode) and node1.port == "PondTop_output_width_17_num_0" and node1.x == 26 and node1.y == 15:
-        #     #     print(type(node2), node2.port, "!!!!!!!!!!!!1")
-        #     self.sinks[node1] = [node2]
-
     def update_sources_and_sinks(self):
         self.inputs = set()
         self.outputs = set()
@@ -739,6 +727,45 @@ class RoutingResultGraph:
                         visited.add(node)
         return kernel_output_nodes
 
+    def print_graph_tiles_only(self, filename):
+        from graphviz import Digraph
+
+        g = Digraph(format='pdf')
+
+        for source in self.get_tiles():
+            if source.tile_id[0] == "r":
+                g.node(str(source), label=f"{source.tile_id}", color="red", shape="box")  # Set the node color to red
+            else:
+                g.node(str(source), label=f"{source.tile_id}")  # Remove the label by setting it to an empty string
+
+            for dest in self.get_tiles():
+                reachable = False
+                visited = set()
+                queue = []
+                queue.append(source)
+                visited.add(source)
+                while queue:
+                    n = queue.pop()
+
+                    if n == dest and n != source:
+                        reachable = True
+
+                    if n not in self.sinks:
+                        breakpoint()
+                    for node in self.sinks[n]:
+                        if node not in visited:
+                            if isinstance(node, TileNode):
+                                if node == dest:
+                                    reachable = True
+                            else:
+                                queue.append(node)
+                                visited.add(node)
+
+                if reachable:
+                    g.edge(str(source), str(dest))
+
+        g.render(filename=filename)
+
 
 def process_net(net):
     net_t = []
@@ -779,8 +806,9 @@ def construct_graph( #TODO: diff
                 kernel = None
             node = TileNode(place[0], place[1], tile_id=blk_id, kernel=kernel)
             graph.add_node(node)
-            max_reg_id = max(max_reg_id, int(blk_id[1:]))
+        max_reg_id = max(max_reg_id, int(blk_id[1:]))
     graph.added_regs = max_reg_id + 1
+    graph.start_regs = graph.added_regs
     # print(graph.added_regs)
 
     # for blk_id, place in placement.items():
@@ -874,7 +902,7 @@ def construct_graph( #TODO: diff
 
     graph.update_sources_and_sinks()
 
-    # graph.fix_regs(netlist)
+    graph.fix_regs(netlist)
 
     while graph.fix_cycles():
         pass
